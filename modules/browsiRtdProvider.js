@@ -20,11 +20,16 @@ import {submodule} from '../src/hook.js';
 import {ajaxBuilder} from '../src/ajax.js';
 import {loadExternalScript} from '../src/adloader.js';
 import {getStorageManager} from '../src/storageManager.js';
-import find from 'prebidjs-polyfill/find.js';
+import find from 'core-js-pure/features/array/find.js';
 import {getGlobal} from '../src/prebidGlobal.js';
-import includes from 'prebidjs-polyfill/includes.js';
+import includes from 'core-js-pure/features/array/includes.js';
+import {generateUUID} from '../src/utils.js';
 
+
+const events = require('../src/events.js');
 const storage = getStorageManager();
+const CONSTANTS = require('../src/constants.json');
+
 
 /** @type {ModuleParams} */
 let _moduleParams = {};
@@ -332,12 +337,21 @@ export const browsiSubmodule = {
   getBidRequestData: setBidRequestsData
 };
 
-function getTargetingData(uc) {
+function getTargetingData(uc, c, us, a) {
   const targetingData = getRTD(uc);
+  const auctionId = a.auctionId
   uc.forEach(auc => {
     if (isNumber(_ic[auc])) {
       _ic[auc] = _ic[auc] + 1;
     }
+    const transactionId = a.adUnits.find(adUnit => adUnit.code === auc).transactionId;
+    events.emit(CONSTANTS.EVENTS.BILLABLE_EVENT,{
+      vendor: 'browsi',
+      type: 'ad_request',
+      billingId: generateUUID(),
+      transactionId: transactionId,
+      auctionId: auctionId
+    })
   });
   return targetingData;
 }
